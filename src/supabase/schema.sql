@@ -6,7 +6,8 @@ CREATE TABLE products (
   price DECIMAL NOT NULL,
   stock INT NOT NULL DEFAULT 0,
   image_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  category TEXT NOT NULL DEFAULT 'Uncategorized'
 );
 
 -- Orders table to track customer purchases

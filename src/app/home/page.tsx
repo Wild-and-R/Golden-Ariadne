@@ -12,6 +12,7 @@ interface Product {
   description: string
   stock: number
   image_url: string | null
+  category: string
 }
 
 const formatIDR = (amount: number) =>
@@ -28,6 +29,7 @@ export default function Home() {
   const [role, setRole] = useState<string>('user')
 
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
   // Admin form state
   const [newName, setNewName] = useState('')
@@ -35,6 +37,8 @@ export default function Home() {
   const [newDesc, setNewDesc] = useState('')
   const [newStock, setNewStock] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [newCategory, setNewCategory] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('All')
 
   useEffect(() => {
     const init = async () => {
@@ -71,47 +75,85 @@ export default function Home() {
     if (data) setProducts(data)
   }
 
-  const handleAddProduct = async () => {
-    if (!newName || !newPrice) return
+  const resetForm = () => {
+  setNewName('')
+  setNewPrice('')
+  setNewDesc('')
+  setNewStock('')
+  setNewCategory('')
+  setImageFile(null)
+  setEditingProduct(null)
+}
 
-    let imageUrl: string | null = null
+  const handleSaveProduct = async () => {
+  if (!newName || !newPrice) return
 
-    if (imageFile) {
-      const fileExt = imageFile.name.split('.').pop()
-      const fileName = `${Date.now()}.${fileExt}`
+  let imageUrl: string | null = editingProduct?.image_url ?? null
 
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, imageFile)
+  if (imageFile) {
+    const fileExt = imageFile.name.split('.').pop()
+    const fileName = `${Date.now()}.${fileExt}`
 
-      if (uploadError) {
-        alert(uploadError.message)
-        return
-      }
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, imageFile)
 
-      const { data } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(fileName)
-
-      imageUrl = data.publicUrl
+    if (uploadError) {
+      alert(uploadError.message)
+      return
     }
 
+    const { data } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName)
+
+    imageUrl = data.publicUrl
+  }
+
+  if (editingProduct) {
+    // UPDATE
+    await supabase
+      .from('products')
+      .update({
+        name: newName,
+        price: Number(newPrice),
+        description: newDesc,
+        stock: Number(newStock),
+        category: newCategory,
+        image_url: imageUrl,
+      })
+      .eq('id', editingProduct.id)
+  } else {
+    // INSERT
     await supabase.from('products').insert({
       name: newName,
       price: Number(newPrice),
       description: newDesc,
       stock: Number(newStock),
+      category: newCategory || 'Uncategorized',
       image_url: imageUrl,
     })
-
-    setNewName('')
-    setNewPrice('')
-    setNewDesc('')
-    setNewStock('')
-    setImageFile(null)
-
-    fetchProducts()
   }
+
+  resetForm()
+  fetchProducts()
+}
+
+  const handleEdit = (product: Product) => {
+  setEditingProduct(product)
+  setNewName(product.name)
+  setNewPrice(product.price.toString())
+  setNewDesc(product.description)
+  setNewStock(product.stock.toString())
+  setNewCategory(product.category)
+}
+
+const handleDelete = async (id: string) => {
+  if (!confirm('Are you sure you want to delete this product?')) return
+
+  await supabase.from('products').delete().eq('id', id)
+  fetchProducts()
+}
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -124,10 +166,22 @@ export default function Home() {
     addToCart({ ...product, quantity: 1 })
     setTimeout(() => setAddingId(null), 1000)
   }
+  const categories = [
+  'All',
+  ...Array.from(new Set(products.map((p) => p.category)))
+]
+  const filteredProducts = products.filter((product) => {
+  const matchesSearch = product.name
+    .toLowerCase()
+    .includes(search.toLowerCase())
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const matchesCategory =
+    selectedCategory === 'All' ||
+    product.category === selectedCategory
+
+  return matchesSearch && matchesCategory
+})
+
 
   const cartTotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -162,13 +216,26 @@ export default function Home() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full rounded-md border border-yellow-400 bg-black px-4 py-3"
         />
+        <div className="mt-4">
+  <select
+    value={selectedCategory}
+    onChange={(e) => setSelectedCategory(e.target.value)}
+    className="w-full rounded-md border border-yellow-400 bg-black px-4 py-3 text-yellow-400"
+  >
+    {categories.map((cat) => (
+      <option key={cat} value={cat} className="bg-black text-yellow-400">
+        {cat}
+      </option>
+    ))}
+  </select>
+</div>
       </div>
 
       {/* ADMIN DASHBOARD */}
       {role === 'admin' && (
         <section className="mb-12 rounded-lg border border-yellow-500 p-6">
           <h2 className="mb-4 text-2xl font-semibold">
-            Admin Dashboard — Add Product
+            Admin Dashboard
           </h2>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -210,13 +277,21 @@ export default function Home() {
               }
               className="rounded-md border border-yellow-400 bg-black px-4 py-2"
             />
+
+            <input
+              placeholder="Category"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="rounded-md border border-yellow-400 bg-black px-4 py-2"
+            />
+
           </div>
 
           <button
-            onClick={handleAddProduct}
+            onClick={handleSaveProduct}
             className="mt-4 rounded-md bg-yellow-500 px-6 py-2 font-semibold text-black hover:bg-yellow-400"
           >
-            Add Product
+            {editingProduct ? 'Update Product' : 'Add Product'}
           </button>
         </section>
       )}
@@ -237,12 +312,14 @@ export default function Home() {
               />
             )}
 
-            {/* Name & Description */}
+            {/* Name, Description & Category */}
             <h2 className="mb-2 text-xl font-semibold">{product.name}</h2>
             <p className="mb-3 text-base text-yellow-400 leading-relaxed">
               {product.description}
             </p>
-
+            <p className="mb-2 text-sm italic text-yellow-300">
+              Category: {product.category}
+            </p>
             {/* Price */}
             <p className="mb-2 font-bold text-yellow-400">{formatIDR(product.price)}</p>
 
@@ -263,6 +340,23 @@ export default function Home() {
                 ? 'Added!'
                 : 'Add to Cart'}
             </button>
+            {role === 'admin' && (
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => handleEdit(product)}
+              className="w-full rounded-md border border-blue-400 px-3 py-1 text-sm text-blue-400 hover:bg-blue-400 hover:text-black"
+            >
+              Edit
+            </button>
+
+            <button
+              onClick={() => handleDelete(product.id)}
+              className="w-full rounded-md border border-red-500 px-3 py-1 text-sm text-red-500 hover:bg-red-500 hover:text-black"
+            >
+              Delete
+            </button>
+          </div>
+        )}
           </div>
         ))}
       </div>
