@@ -175,7 +175,6 @@ useEffect(() => {
   }
 
   if (editingProduct) {
-    // UPDATE
     await supabase
       .from('products')
       .update({
@@ -188,7 +187,6 @@ useEffect(() => {
       })
       .eq('id', editingProduct.id)
   } else {
-    // INSERT
     await supabase.from('products').insert({
       name: newName,
       price: Number(newPrice),
@@ -276,30 +274,31 @@ const handleDelete = async (id: string) => {
           </p>
         </div>
         <div className="flex items-center">
-        {role !== 'admin' && (
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="ml-4 rounded-md border border-yellow-400 px-4 py-2 font-semibold text-yellow-400 hover:bg-yellow-400 hover:text-black"
-          >
-            Cart ({cart.length})
-          </button>
-        )}  
-        {role !== 'admin' && (
-          <button
-            onClick={() => router.push('/orders')}
-            className="ml-4 rounded-md border border-yellow-400 px-4 py-2 font-semibold text-yellow-400 hover:bg-yellow-400 hover:text-black"
-          >
-            My Orders
-          </button>
-        )}
+          {role !== 'admin' && (
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="ml-4 rounded-md border border-yellow-400 px-4 py-2 font-semibold text-yellow-400 hover:bg-yellow-400 hover:text-black"
+            >
+              Cart ({cart.length})
+            </button>
+          )}
 
-        <button
-          onClick={handleLogout}
-          className="ml-4 rounded-md border border-yellow-500 px-4 py-2 font-semibold hover:bg-yellow-400 hover:text-black"
-        >
-          Logout
-        </button>
-      </div>
+          <button
+            onClick={() =>
+              router.push(role === 'admin' ? '/admin/orders' : '/orders')
+            }
+            className="ml-4 rounded-md border border-yellow-400 px-4 py-2 font-semibold text-yellow-400 hover:bg-yellow-400 hover:text-black"
+          >
+            {role === 'admin' ? 'Manage Orders' : 'My Orders'}
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="ml-4 rounded-md border border-yellow-500 px-4 py-2 font-semibold hover:bg-yellow-400 hover:text-black"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* SEARCH */}

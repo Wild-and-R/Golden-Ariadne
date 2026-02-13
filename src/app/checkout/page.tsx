@@ -98,42 +98,49 @@ export default function CheckoutPage() {
     // Open Snap popup
     window.snap.pay(data.token, {
       onSuccess: async function () {
-        // Mark order as paid
-        await supabase
-          .from('orders')
-          .update({ status: 'paid' })
-          .eq('payment_id', orderId)
+  // Mark order as paid
+  await supabase
+    .from('orders')
+    .update({ status: 'paid' })
+    .eq('payment_id', orderId)
 
-        // Reduce stock for each product
-        for (const item of cart) {
-          const { data: product } = await supabase
-            .from('products')
-            .select('stock')
-            .eq('id', item.id)
-            .single()
+  // Reduce stock
+  for (const item of cart) {
+    const { data: product } = await supabase
+      .from('products')
+      .select('stock')
+      .eq('id', item.id)
+      .single()
 
-          if (!product) continue
+    if (!product) continue
 
-          const newStock = product.stock - item.quantity
-          await supabase
-            .from('products')
-            .update({ stock: newStock < 0 ? 0 : newStock })
-            .eq('id', item.id)
-        }
+    const newStock = product.stock - item.quantity
 
-        // Clear cart and redirect to home
-        clearCart()
-        router.push('/orders')
-      },
-      onPending: function () {
-        alert('Waiting for payment...')
-      },
-      onError: function () {
-        alert('Payment failed')
-      },
-      onClose: function () {
-        alert('You closed the popup')
-      },
+    await supabase
+      .from('products')
+      .update({ stock: newStock < 0 ? 0 : newStock })
+      .eq('id', item.id)
+  }
+
+  // Send confirmation email
+  await fetch('/api/send-order-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: user.email,
+      orderId,
+      items: cart,
+      total,
+      address,
+    }),
+  })
+
+  // Clear cart
+  clearCart()
+
+  router.push('/orders')
+},
+
     })
   }
 
