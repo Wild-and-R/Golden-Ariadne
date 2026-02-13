@@ -1,4 +1,3 @@
-export default function LoginPageWrapper() {
-  const LoginPageClient = require('./LoginPageClient').default;
-  return <LoginPageClient />;
-}
+'use client'; // THIS MAKES THE ENTIRE PAGE CLIENT-SIDE
+
+export { default } from './LoginPageClient';
