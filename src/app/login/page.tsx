@@ -1,3 +1,7 @@
-'use client'; // THIS MAKES THE ENTIRE PAGE CLIENT-SIDE
+'use client'; // <<< this makes the entire page client-side
 
-export { default } from './LoginPageClient';
+import LoginPage from './LoginPageClient';
+
+export default function LoginPageWrapper() {
+  return <LoginPage />;
+}
