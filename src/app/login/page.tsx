@@ -1,11 +1,10 @@
-'use client';
-
-export const dynamic = 'force-dynamic';
+'use client'
 
 import { useState, useEffect } from 'react'
 import type { SubmitEventHandler } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
 export default function LoginPage() {
   const router = useRouter()
