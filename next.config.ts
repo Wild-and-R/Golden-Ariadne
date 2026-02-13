@@ -5,10 +5,4 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 };
 
-module.exports = {
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
-}
-
 export default nextConfig;
