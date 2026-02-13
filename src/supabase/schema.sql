@@ -17,7 +17,8 @@ CREATE TABLE orders (
   total_amount DECIMAL NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending', -- pending, paid, shipped, delivered
   payment_id TEXT, -- Midtrans ID
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  shipping_address TEXT
 );
 
 -- Order items to track specific products in an order
@@ -34,5 +35,6 @@ CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name TEXT,
   role TEXT NOT NULL DEFAULT 'user', -- user or admin
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  address TEXT
 );

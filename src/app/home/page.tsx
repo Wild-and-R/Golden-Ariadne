@@ -1,7 +1,7 @@
 'use client'
 
 import { useCart } from '@/store/useCart'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -19,7 +19,16 @@ const formatIDR = (amount: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount)
 
 export default function Home() {
-  const { cart, addToCart, removeFromCart, clearCart } = useCart()
+  const {
+  cart,
+  setCart,
+  addToCart,
+  clearCart,
+  increaseQuantity,
+  decreaseQuantity,
+} = useCart()
+
+
   const supabase = createClient()
   const router = useRouter()
 
@@ -30,6 +39,10 @@ export default function Home() {
 
   const [addingId, setAddingId] = useState<string | null>(null)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+
+  const formRef = useRef<HTMLDivElement>(null)
+
+  const [isCartOpen, setIsCartOpen] = useState(false)
 
   // Admin form state
   const [newName, setNewName] = useState('')
@@ -42,29 +55,80 @@ export default function Home() {
 
   useEffect(() => {
     const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-      if (!user) {
-        router.push('/login')
-        return
-      }
+  if (!user) {
+    router.push('/login')
+    return
+  }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, role')
-        .eq('id', user.id)
-        .single()
+  // Load cart for this user
+  const storedCart = localStorage.getItem(
+    `golden-ariadne-cart-${user.id}`
+  )
 
-      setUserName(profile?.full_name ?? user.email)
-      setRole(profile?.role ?? 'user')
+  if (storedCart) {
+    setCart(JSON.parse(storedCart))
+  } else {
+    setCart([])
+  }
 
-      fetchProducts()
-    }
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, role')
+    .eq('id', user.id)
+    .single()
+
+  setUserName(profile?.full_name ?? user.email)
+  setRole(profile?.role ?? 'user')
+
+  fetchProducts()
+}
+
 
     init()
   }, [])
+
+useEffect(() => {
+  // Subscribe to real-time changes on 'products'
+  const subscription = supabase
+    .channel('public:products')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'products' },
+      (payload) => {
+        console.log('Realtime product change:', payload)
+        fetchProducts() // refetch products whenever a change happens
+      }
+    )
+    .subscribe()
+
+  // Cleanup on unmount
+  return () => {
+    supabase.removeChannel(subscription)
+  }
+}, [])
+
+useEffect(() => {
+  const saveCart = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    localStorage.setItem(
+      `golden-ariadne-cart-${user.id}`,
+      JSON.stringify(cart)
+    )
+  }
+
+  if (cart.length >= 0) {
+    saveCart()
+  }
+}, [cart])
 
   const fetchProducts = async () => {
     const { data } = await supabase
@@ -146,6 +210,9 @@ export default function Home() {
   setNewDesc(product.description)
   setNewStock(product.stock.toString())
   setNewCategory(product.category)
+
+  // Scroll form into view
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 const handleDelete = async (id: string) => {
@@ -162,10 +229,20 @@ const handleDelete = async (id: string) => {
 
   // Add to cart handler with visual feedback
   const handleAddToCart = (product: Product) => {
-    setAddingId(product.id)
-    addToCart({ ...product, quantity: 1 })
-    setTimeout(() => setAddingId(null), 1000)
-  }
+  setAddingId(product.id)
+
+  addToCart({
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    stock: product.stock,
+    quantity: 1,
+  })
+
+  setIsCartOpen(true) // open dialog
+  setTimeout(() => setAddingId(null), 1000)
+}
+
   const categories = [
   'All',
   ...Array.from(new Set(products.map((p) => p.category)))
@@ -198,13 +275,31 @@ const handleDelete = async (id: string) => {
             Welcome{userName ? `, ${userName}` : ''}
           </p>
         </div>
+        <div className="flex items-center">
+        {role !== 'admin' && (
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="ml-4 rounded-md border border-yellow-400 px-4 py-2 font-semibold text-yellow-400 hover:bg-yellow-400 hover:text-black"
+          >
+            Cart ({cart.length})
+          </button>
+        )}  
+        {role !== 'admin' && (
+          <button
+            onClick={() => router.push('/orders')}
+            className="ml-4 rounded-md border border-yellow-400 px-4 py-2 font-semibold text-yellow-400 hover:bg-yellow-400 hover:text-black"
+          >
+            My Orders
+          </button>
+        )}
 
         <button
           onClick={handleLogout}
-          className="rounded-md border border-yellow-500 px-4 py-2 font-semibold hover:bg-yellow-400 hover:text-black"
+          className="ml-4 rounded-md border border-yellow-500 px-4 py-2 font-semibold hover:bg-yellow-400 hover:text-black"
         >
           Logout
         </button>
+      </div>
       </div>
 
       {/* SEARCH */}
@@ -233,7 +328,7 @@ const handleDelete = async (id: string) => {
 
       {/* ADMIN DASHBOARD */}
       {role === 'admin' && (
-        <section className="mb-12 rounded-lg border border-yellow-500 p-6">
+        <section ref={formRef} className="mb-12 rounded-lg border border-yellow-500 p-6">
           <h2 className="mb-4 text-2xl font-semibold">
             Admin Dashboard
           </h2>
@@ -329,17 +424,20 @@ const handleDelete = async (id: string) => {
             </p>
 
             {/* Add to Cart */}
-            <button
-              disabled={addingId === product.id || product.stock === 0}
-              onClick={() => handleAddToCart(product)}
-              className="w-full rounded-md border border-yellow-400 bg-black px-4 py-2 font-semibold text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:opacity-60"
-            >
-              {product.stock === 0
-                ? 'Out of Stock'
-                : addingId === product.id
-                ? 'Added!'
-                : 'Add to Cart'}
-            </button>
+            {role !== 'admin' && (
+              <button
+                disabled={addingId === product.id || product.stock === 0}
+                onClick={() => handleAddToCart(product)}
+                className="w-full rounded-md border border-yellow-400 bg-black px-4 py-2 font-semibold text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:opacity-60"
+              >
+                {product.stock === 0
+                  ? 'Out of Stock'
+                  : addingId === product.id
+                  ? 'Added!'
+                  : 'Add to Cart'}
+              </button>
+            )}
+            {/* Edit & Delete */}
             {role === 'admin' && (
           <div className="mt-3 flex gap-2">
             <button
@@ -362,50 +460,96 @@ const handleDelete = async (id: string) => {
       </div>
 
       {/* CART SUMMARY */}
-      <section className="mt-12 rounded-lg border border-yellow-400 bg-black p-6 shadow-lg">
-        <h3 className="mb-4 text-2xl font-semibold text-yellow-400">
-          Your Cart ({cart.length} {cart.length === 1 ? 'item' : 'items'})
+      {isCartOpen && role !== 'admin' && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+    <div className="w-full max-w-lg rounded-lg border border-yellow-400 bg-black p-6 shadow-lg">
+
+      {/* Header */}
+      <div className="mb-4 flex justify-between items-center">
+        <h3 className="text-2xl font-semibold text-yellow-400">
+          Your Cart ({cart.length})
         </h3>
+        <button
+          onClick={() => setIsCartOpen(false)}
+          className="text-yellow-400 hover:text-red-400"
+        >
+          ✕
+        </button>
+      </div>
 
-        {cart.length === 0 ? (
-          <p className="text-yellow-400">Your cart is empty.</p>
-        ) : (
-          <>
-            <ul className="mb-4 space-y-3">
-              {cart.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-center justify-between rounded-md border border-yellow-400 bg-black px-4 py-2"
-                >
-                  <div>
-                    <p className="font-semibold text-yellow-400">{item.name}</p>
-                    <p className="text-base leading-relaxed text-yellow-400">
-                      {formatIDR(item.price)} x {item.quantity}
-                    </p>
-                  </div>
+      {cart.length === 0 ? (
+        <p className="text-yellow-400">Your cart is empty.</p>
+      ) : (
+        <>
+          <ul className="mb-4 space-y-3 max-h-64 overflow-y-auto">
+            {cart.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-center justify-between rounded-md border border-yellow-400 px-4 py-2"
+              >
+                <div>
+                  <p className="font-semibold">{item.name}</p>
+                  <p>
+                    {formatIDR(item.price)} x {item.quantity}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-red-600 hover:text-red-400"
+                    onClick={() => decreaseQuantity(item.id)}
+                    className="border border-yellow-400 px-2"
                   >
-                    ✕
+                    −
                   </button>
-                </li>
-              ))}
-            </ul>
 
-            <p className="mb-4 text-right text-xl font-bold text-yellow-400">
-              Total: {formatIDR(cartTotal)}
-            </p>
+                  <span>{item.quantity}</span>
+
+                  <button
+                    onClick={() => increaseQuantity(item.id)}
+                    disabled={item.quantity >= item.stock}
+                    className="border border-yellow-400 px-2 disabled:opacity-50"
+                  >
+                    +
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <p className="mb-4 text-right font-bold">
+            Total:{' '}
+            {formatIDR(
+              cart.reduce(
+                (sum, item) =>
+                  sum + item.price * item.quantity,
+                0
+              )
+            )}
+          </p>
+
+          <div className="flex justify-between">
+            <button
+              onClick={clearCart}
+              className="rounded-md bg-yellow-500 px-4 py-2 font-semibold text-black"
+            >
+              Clear
+            </button>
 
             <button
-              onClick={() => clearCart()}
-              className="rounded-md bg-yellow-500 px-5 py-2 font-semibold text-black transition hover:bg-yellow-400"
+              onClick={() => {
+                setIsCartOpen(false)
+                router.push('/checkout')
+              }}
+              className="rounded-md border border-yellow-400 px-4 py-2 text-yellow-400 hover:bg-yellow-400 hover:text-black"
             >
-              Clear Cart
+              Checkout
             </button>
-          </>
-        )}
-      </section>
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+)}
     </main>
   )
 }
