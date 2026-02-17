@@ -138,6 +138,9 @@ export default function CheckoutPage() {
   // Clear cart
   clearCart()
 
+  // Clear localStorage cart for this user
+  localStorage.removeItem(`golden-ariadne-cart-${user.id}`)
+
   router.push('/orders')
 },
 

@@ -93,32 +93,71 @@ export default function AdminOrdersPage() {
   }, [supabase])
 
   // Update order status
-  const updateStatus = async (orderId: string, status: string) => {
-  // Update the order status in DB
+  const updateStatus = async (orderId: string, newStatus: string) => {
+  const order = orders.find((o) => o.id === orderId)
+  if (!order) return
+
+  // Special confirmation for cancellation
+  if (newStatus === 'cancelled') {
+    const confirmCancel = confirm(
+      `You are about to CANCEL this order.\n\n` +
+      `This will:\n` +
+      `• Refund the customer via Midtrans\n` +
+      `• Restore product stock\n` +
+      `• Delete the order from database\n\n` +
+      `Are you sure you want to continue?`
+    )
+
+    if (!confirmCancel) return
+
+    await fetch('/api/cancel-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId }),
+    })
+
+    setOrders((prev) => prev.filter((o) => o.id !== orderId))
+    return
+  }
+
+  // Confirmation for normal status changes
+  if (newStatus !== order.status) {
+    const confirmChange = confirm(
+      `Change status of order ${order.payment_id}\n\n` +
+      `From: ${order.status}\n` +
+      `To: ${newStatus}\n\n` +
+      `Customer will receive an email notification.\n\n` +
+      `Proceed?`
+    )
+
+    if (!confirmChange) return
+  }
+
+  // Update in DB
   const { data: updatedOrders } = await supabase
     .from('orders')
-    .update({ status })
+    .update({ status: newStatus })
     .eq('id', orderId)
     .select()
-  
-  if (!updatedOrders?.[0]) return alert('Failed to update status')
+
+  if (!updatedOrders?.[0]) {
+    alert('Failed to update status')
+    return
+  }
 
   // Update local state
   setOrders((prev) =>
-    prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+    prev.map((o) =>
+      o.id === orderId ? { ...o, status: newStatus } : o
+    )
   )
 
-  // Send status-change email via server API
+  // Send email
   await fetch('/api/send-status-email', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ orderId, status }),
-})
-  .then(res => res.json())
-  .then(data => {
-    if (data.error) console.error('Email error:', data.error)
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId, status: newStatus }),
   })
-  .catch(err => console.error('Fetch error:', err))
 }
 
   if (loading)
@@ -153,11 +192,14 @@ export default function AdminOrdersPage() {
               <span>Status:</span>
               <select
                 value={order.status}
-                onChange={(e) => updateStatus(order.id, e.target.value)}
+                onChange={(e) =>
+                  updateStatus(order.id, e.target.value)
+                }
                 className="bg-black border border-yellow-400 px-2 py-1 text-yellow-400"
               >
                 <option value="pending">pending</option>
                 <option value="paid">paid</option>
+                <option value="cancel_requested">cancel_requested</option>
                 <option value="shipped">shipped</option>
                 <option value="delivered">delivered</option>
                 <option value="cancelled">cancelled</option>

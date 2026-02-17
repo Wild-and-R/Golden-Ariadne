@@ -186,6 +186,33 @@ export default function OrdersPage() {
                   </span>
                 </div>
 
+                {['pending', 'paid'].includes(order.status) && (
+                  <button
+                    onClick={async () => {
+                      const confirmCancel = confirm(
+                        'Are you sure you want to request cancellation?'
+                      )
+                      if (!confirmCancel) return
+
+                      await supabase
+                        .from('orders')
+                        .update({ status: 'cancel_requested' })
+                        .eq('id', order.id)
+
+                      setOrders((prev) =>
+                        prev.map((o) =>
+                          o.id === order.id
+                            ? { ...o, status: 'cancel_requested' }
+                            : o
+                        )
+                      )
+                    }}
+                    className="mt-3 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                  >
+                    Request Cancel
+                  </button>
+                )}
+
                 <div className="flex justify-between mb-2">
                   <span className="font-semibold">Total:</span>
                   <span>{formatIDR(order.total_amount)}</span>
