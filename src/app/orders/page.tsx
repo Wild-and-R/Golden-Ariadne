@@ -175,43 +175,45 @@ export default function OrdersPage() {
                   <span>{order.payment_id}</span>
                 </div>
 
-                <div className="flex justify-between mb-2">
-                  <span className="font-semibold">Status:</span>
-                  <span
-                    className={`font-semibold capitalize ${statusColor(
-                      order.status
-                    )}`}
-                  >
-                    {order.status}
-                  </span>
-                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="font-semibold">Status:</span>{' '}
+                    <span
+                      className={`font-semibold capitalize ${statusColor(
+                        order.status
+                      )}`}
+                    >
+                      {order.status}
+                    </span>
+                  </div>
 
-                {['pending', 'paid'].includes(order.status) && (
-                  <button
-                    onClick={async () => {
-                      const confirmCancel = confirm(
-                        'Are you sure you want to request cancellation?'
-                      )
-                      if (!confirmCancel) return
-
-                      await supabase
-                        .from('orders')
-                        .update({ status: 'cancel_requested' })
-                        .eq('id', order.id)
-
-                      setOrders((prev) =>
-                        prev.map((o) =>
-                          o.id === order.id
-                            ? { ...o, status: 'cancel_requested' }
-                            : o
+                  {['pending', 'paid'].includes(order.status) && (
+                    <button
+                      onClick={async () => {
+                        const confirmCancel = confirm(
+                          'Are you sure you want to request cancellation?'
                         )
-                      )
-                    }}
-                    className="mt-3 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-                  >
-                    Request Cancel
-                  </button>
-                )}
+                        if (!confirmCancel) return
+
+                        await supabase
+                          .from('orders')
+                          .update({ status: 'cancel_requested' })
+                          .eq('id', order.id)
+
+                        setOrders((prev) =>
+                          prev.map((o) =>
+                            o.id === order.id
+                              ? { ...o, status: 'cancel_requested' }
+                              : o
+                          )
+                        )
+                      }}
+                      className="rounded-md border border-red-500 px-4 py-1 text-sm font-semibold text-red-400 transition hover:bg-red-500 hover:text-black"
+                    >
+                      Request Cancel
+                    </button>
+                  )}
+                </div>
 
                 <div className="flex justify-between mb-2">
                   <span className="font-semibold">Total:</span>
