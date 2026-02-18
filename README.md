@@ -28,4 +28,4 @@ My Order
 Admin
 ![Admin](Screenshots/gaa.png)
 Admin Manage Order
-![Manage Order](Screenshots/gaa0.png)
+![Manage Order](Screenshots/gaao.png)
