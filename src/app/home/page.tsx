@@ -222,7 +222,7 @@ const handleDelete = async (id: string) => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/')
   }
 
   // Add to cart handler with visual feedback
@@ -327,68 +327,131 @@ const handleDelete = async (id: string) => {
 
       {/* ADMIN DASHBOARD */}
       {role === 'admin' && (
-        <section ref={formRef} className="mb-12 rounded-lg border border-yellow-500 p-6">
-          <h2 className="mb-4 text-2xl font-semibold">
-            Admin Dashboard
-          </h2>
+  <section
+    ref={formRef}
+    className="mb-16 rounded-2xl border border-yellow-500/40 bg-gradient-to-br from-black via-neutral-900 to-black p-8 shadow-2xl"
+  >
+    {/* Header */}
+    <div className="mb-8 flex items-center justify-between">
+      <div>
+        <h2 className="text-3xl font-bold text-yellow-400">
+          {editingProduct ? 'Edit Product' : 'Add New Product'}
+        </h2>
+        <p className="text-sm text-yellow-300/70">
+          Manage your jewelry collection
+        </p>
+      </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <input
-              placeholder="Product Name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="rounded-md border border-yellow-400 bg-black px-4 py-2"
-            />
-
-            <input
-              placeholder="Price"
-              type="number"
-              value={newPrice}
-              onChange={(e) => setNewPrice(e.target.value)}
-              className="rounded-md border border-yellow-400 bg-black px-4 py-2"
-            />
-
-            <input
-              placeholder="Stock"
-              type="number"
-              value={newStock}
-              onChange={(e) => setNewStock(e.target.value)}
-              className="rounded-md border border-yellow-400 bg-black px-4 py-2"
-            />
-
-            <input
-              placeholder="Description"
-              value={newDesc}
-              onChange={(e) => setNewDesc(e.target.value)}
-              className="rounded-md border border-yellow-400 bg-black px-4 py-2"
-            />
-
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) =>
-                setImageFile(e.target.files ? e.target.files[0] : null)
-              }
-              className="rounded-md border border-yellow-400 bg-black px-4 py-2"
-            />
-
-            <input
-              placeholder="Category"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              className="rounded-md border border-yellow-400 bg-black px-4 py-2"
-            />
-
-          </div>
-
-          <button
-            onClick={handleSaveProduct}
-            className="mt-4 rounded-md bg-yellow-500 px-6 py-2 font-semibold text-black hover:bg-yellow-400"
-          >
-            {editingProduct ? 'Update Product' : 'Add Product'}
-          </button>
-        </section>
+      {editingProduct && (
+        <span className="rounded-full bg-yellow-500/20 px-4 py-1 text-xs font-semibold text-yellow-400 border border-yellow-500/40">
+          Editing Mode
+        </span>
       )}
+    </div>
+
+    {/* Form Grid */}
+    <div className="grid gap-6 md:grid-cols-2">
+
+      {/* Product Name */}
+      <div className="flex flex-col">
+        <label className="mb-1 text-sm text-yellow-300">Product Name</label>
+        <input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          className="rounded-lg border border-yellow-500/40 bg-black px-4 py-3 focus:border-yellow-400 focus:outline-none"
+        />
+      </div>
+
+      {/* Price */}
+      <div className="flex flex-col">
+        <label className="mb-1 text-sm text-yellow-300">Price (IDR)</label>
+        <input
+          type="number"
+          value={newPrice}
+          onChange={(e) => setNewPrice(e.target.value)}
+          className="rounded-lg border border-yellow-500/40 bg-black px-4 py-3 focus:border-yellow-400 focus:outline-none"
+        />
+      </div>
+
+      {/* Stock */}
+      <div className="flex flex-col">
+        <label className="mb-1 text-sm text-yellow-300">Stock</label>
+        <input
+          type="number"
+          value={newStock}
+          onChange={(e) => setNewStock(e.target.value)}
+          className="rounded-lg border border-yellow-500/40 bg-black px-4 py-3 focus:border-yellow-400 focus:outline-none"
+        />
+      </div>
+
+      {/* Category */}
+      <div className="flex flex-col">
+        <label className="mb-1 text-sm text-yellow-300">Category</label>
+        <input
+          value={newCategory}
+          onChange={(e) => setNewCategory(e.target.value)}
+          className="rounded-lg border border-yellow-500/40 bg-black px-4 py-3 focus:border-yellow-400 focus:outline-none"
+        />
+      </div>
+
+      {/* Description */}
+      <div className="flex flex-col md:col-span-2">
+        <label className="mb-1 text-sm text-yellow-300">Description</label>
+        <textarea
+          value={newDesc}
+          onChange={(e) => setNewDesc(e.target.value)}
+          rows={4}
+          className="rounded-lg border border-yellow-500/40 bg-black px-4 py-3 focus:border-yellow-400 focus:outline-none"
+        />
+      </div>
+
+      {/* Image Upload */}
+      <div className="flex flex-col md:col-span-2">
+        <label className="mb-1 text-sm text-yellow-300">Product Image</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) =>
+            setImageFile(e.target.files ? e.target.files[0] : null)
+          }
+          className="rounded-lg border border-yellow-500/40 bg-black px-4 py-3"
+        />
+
+        {/* Image Preview */}
+        {(imageFile || editingProduct?.image_url) && (
+          <img
+            src={
+              imageFile
+                ? URL.createObjectURL(imageFile)
+                : editingProduct?.image_url || ''
+            }
+            alt="Preview"
+            className="mt-4 h-40 w-full rounded-lg object-cover border border-yellow-500/30"
+          />
+        )}
+      </div>
+    </div>
+
+    {/* Buttons */}
+    <div className="mt-8 flex justify-end gap-4">
+      {editingProduct && (
+        <button
+          onClick={resetForm}
+          className="rounded-lg border border-gray-500 px-6 py-2 text-gray-300 hover:bg-gray-700"
+        >
+          Cancel
+        </button>
+      )}
+
+      <button
+        onClick={handleSaveProduct}
+        className="rounded-lg bg-yellow-500 px-8 py-3 font-semibold text-black transition hover:bg-yellow-400 shadow-lg"
+      >
+        {editingProduct ? 'Update Product' : 'Add Product'}
+      </button>
+    </div>
+  </section>
+)}
 
       {/* PRODUCT GRID */}
       <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3">
