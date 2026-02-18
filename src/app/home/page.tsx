@@ -407,15 +407,61 @@ const handleDelete = async (id: string) => {
 
       {/* Image Upload */}
       <div className="flex flex-col md:col-span-2">
-        <label className="mb-1 text-sm text-yellow-300">Product Image</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) =>
-            setImageFile(e.target.files ? e.target.files[0] : null)
+        <div className="md:col-span-2">
+  <label className="mb-2 block text-sm text-yellow-300">
+    Product Image
+  </label>
+
+  {/* Hidden Input */}
+  <input
+    type="file"
+    accept="image/*"
+    id="imageUpload"
+    className="hidden"
+    onChange={(e) =>
+      setImageFile(e.target.files ? e.target.files[0] : null)
+    }
+  />
+
+  {/* Custom Upload Box */}
+  <label
+    htmlFor="imageUpload"
+    className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-yellow-500/40 bg-black/60 p-8 text-center transition hover:border-yellow-400 hover:bg-yellow-500/5"
+  >
+    {!imageFile && !editingProduct?.image_url && (
+      <>
+        <span className="text-lg font-semibold text-yellow-400">
+          Click to Upload Image
+        </span>
+        <span className="mt-2 text-sm text-yellow-300/60">
+          PNG, JPG up to 5MB
+        </span>
+      </>
+    )}
+
+    {(imageFile || editingProduct?.image_url) && (
+      <div className="w-full">
+        <img
+          src={
+            imageFile
+              ? URL.createObjectURL(imageFile)
+              : editingProduct?.image_url || ''
           }
-          className="rounded-lg border border-yellow-500/40 bg-black px-4 py-3"
+          alt="Preview"
+          className="mx-auto h-48 w-full rounded-lg object-cover border border-yellow-500/30"
         />
+
+        <p className="mt-4 text-sm text-yellow-300">
+          {imageFile ? imageFile.name : 'Current Image'}
+        </p>
+
+        <p className="mt-1 text-xs text-yellow-400 underline">
+          Click to change image
+        </p>
+      </div>
+    )}
+  </label>
+</div>
 
         {/* Image Preview */}
         {(imageFile || editingProduct?.image_url) && (
