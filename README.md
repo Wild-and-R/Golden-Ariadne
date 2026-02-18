@@ -15,8 +15,8 @@ Resend
 https://golden-ariadne.vercel.app/
 
 ## Screenshots
-The App in Desktop
-![Desktop App](Screenshots/desktopsplitbillapp.jpg)
+Start Screen
+![Desktop App](Screenshots/ga.png)
 The App in Mobile
 ![Mobile App](Screenshots/1000014260.jpg)
 After taking a photo
