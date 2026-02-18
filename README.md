@@ -17,12 +17,15 @@ https://golden-ariadne.vercel.app/
 ## Screenshots
 Start Screen
 ![Desktop App](Screenshots/ga.png)
-The App in Mobile
-![Mobile App](Screenshots/1000014260.jpg)
-After taking a photo
-![Mobile Photo](Screenshots/1000014274.jpg)
-Equal Split
-![Equal Split](Screenshots/1000014276.jpg)
-Split per Item
-![Item Split](Screenshots/1000014278.jpg)
-![Item Split2](Screenshots/1000014280.jpg)
+Home
+![Home](Screenshots/gah.png)
+Cart
+![Cart](Screenshots/gac.png)
+Checkout
+![Checkout](Screenshots/gach.png)
+My Order
+![My Order](Screenshots/gao.png)
+Admin
+![Admin](Screenshots/gaa.png)
+Admin Manage Order
+![Manage Order](Screenshots/gaa0.png)
